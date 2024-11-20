@@ -88,6 +88,28 @@ export const robot = (app: Probot) => {
       log.debug("compareCommits.commits:", commits)
       log.debug("compareCommits.files", changedFiles)
 
+      if(process.env.FILTER){
+        const filter = JSON.parse(process.env.FILTER);
+        changedFiles = changedFiles?.filter(file => {
+          for (let i = 0; i < filter.length; i++) {
+            const f = filter[i];
+            if(f.PATH_PATTERN){
+              const pathPattern = new RegExp(f.PATH_PATTERN);
+              if(!pathPattern.test(file.filename)){
+                continue;
+              }
+            }
+            if(f.IGNORE_PATTERNS){
+              const ignorePatterns: string[] = f.IGNORE_PATTERNS;
+              if(ignorePatterns.some(pattern => new RegExp(pattern).test(file.filename))){
+                return false;
+              }
+            }
+            return true;
+          }
+          return false;
+        });
+      }
       if (context.payload.action === 'synchronize' && commits.length >= 2) {
         const {
           data: { files },
